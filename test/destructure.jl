@@ -201,13 +201,13 @@ end
 using ForwardDiff, Zygote, Flux, Optimisers, Test
 
 y = Float32[0.8564646, 0.21083355]
-p = randn(Float32, 252);
+p = randn(Float32, 27);
 t = 1.5f0
-λ = [ForwardDiff.Dual{ForwardDiff.Tag{Nothing,Float32}}(0.87135935, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), ForwardDiff.Dual{ForwardDiff.Tag{Nothing,Float32}}(1.5225363, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)]
+λ = [ForwardDiff.Dual(0.87135935, 1, 0, 0, 0, 0, 0), ForwardDiff.Dual(1.5225363, 0, 1, 0, 0, 0, 0)]
 
 model = Chain(x -> x .^ 3,
-    Dense(2 => 50, tanh),
-    Dense(50 => 2))
+    Dense(2 => 5, tanh),
+    Dense(5 => 2))
 
 p,re = Optimisers.destructure(model)
 f(u, p, t) = re(p)(u)

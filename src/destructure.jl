@@ -1,5 +1,5 @@
 
-using ChainRulesCore: ChainRulesCore, NoTangent, ProjectTo, unthunk
+using ChainRulesCore: ChainRulesCore, NoTangent, ProjectTo, unthunk, ZeroTangent, AbstractZero
 const NoT = NoTangent()
 
 """
@@ -114,13 +114,33 @@ function _Tangent_biwalk(f, x, aux)  # use with prune = NoT
   end
 end
 
+function _structure_biwalk(f, x, aux)
+  ch, re = functor(typeof(x), x)
+  au, _ = functor(typeof(x), aux)
+  zz = _trainmap(f, ch, _trainable(x), au)
+end
+
 function ChainRulesCore.rrule(::typeof(_rebuild), x, off, flat, len; kw...)
-  _rebuild_back(dx) = (NoT, NoT, NoT, _grad!(x, unthunk(dx), off, _zero(flat)), NoT)
+  function _rebuild_back(dx)
+    # The gradient dflat need not have same eltype as flat, preliminary walk to figure this out:
+    types = Type[]
+    dx_un = fmap(x, unthunk(dx); exclude = isnumeric, walk = _structure_biwalk, cache = _NoCache()) do y, dy
+      dy_un = unthunk(dy)
+      push!(types, eltype(dy))
+      dy_un
+    end
+    if all(Tdy -> Tdy <: AbstractZero, types)  # includes empty case
+      (NoT, NoT, NoT, ZeroTangent(), NoT)
+    else
+      T = reduce(promote_type, types)
+      (NoT, NoT, NoT, _grad!(x, dx_un, off, _zero(flat, T)), NoT)
+    end
+  end
   _rebuild(x, off, flat, len; kw...), _rebuild_back
 end
 
-_zero(x) = map!(zero, similar(x, float(eltype(x))), x)  # mutable zero array for _grad!
-ChainRulesCore.@non_differentiable _zero(x)
+_zero(x, ::Type{T}) where T = map!(zero, similar(x, T), x)  # mutable zero array for _grad!
+ChainRulesCore.@non_differentiable _zero(x, T)
 
 # This is the gradient of model reconstruction, accumulating duplicates:
 function _grad!(x, dx, off, flat::AbstractVector)
@@ -150,3 +170,15 @@ function ChainRulesCore.rrule(::typeof(_maybewarn))
   @warn "second derivatives of destructure may not work yet, sorry!" maxlog=3
   nothing, _ -> (NoT,)
 end
+
+
+
+ # fmap(x, dx_un; exclude = isnumeric, walk = _trainable_biwalk, cache = _NoCache()) do y, dy
+ #   @show y dy
+ #   push!(types, eltype(dy))
+ #   y  # don't need this, but lets us re-use _trainable_biwalk
+ # end
+ # fmapstructure(dx_un; exclude = isnumeric, cache = _NoCache()) do dy
+#    push!(types, eltype(dy))
+#    # This fails as Tangent is leaf according to Functors
+#  end

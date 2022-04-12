@@ -5,6 +5,10 @@ using LinearAlgebra
 
 include("interface.jl")
 
+struct _NoCache end
+Base.haskey(::_NoCache, x) = false
+Base.setindex!(::_NoCache, val, i) = val
+
 include("destructure.jl")
 export destructure, total, total2
 
