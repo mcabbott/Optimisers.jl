@@ -144,3 +144,33 @@ function _adjust(r::T, nt::NamedTuple) where T <: AbstractRule
   end
   T(vals...)  # relies on having the default constructor
 end
+
+###
+### reset
+###
+
+"""
+    Optimisers.reset!(tree)
+
+Resets the state `tree = setup(rule, model)` back to its initial state,
+un-doing changes caused by `update!`.
+
+Can be applied to the state corresponding to only part of a model,
+for instance with `model::Chain`, to freeze `model.layers[1]` you
+should call `reset!(tree.layers[1])`.
+
+# Example
+```jldoctest
+
+```
+"""
+
+reset!(tree) = foreach(reset!, tree)
+
+reset!(ℓ::Leaf) = reset!(ℓ.rule, ℓ.state)
+
+reset!(::AbstractRule, ::Nothing) = nothing
+
+reset!(rule::AbstractRule, state) = throw(ArgumentError("""reset! does not now how to handle this rule.
+  You need to define a method `Optimsers.reset!(rule::$(typeof(rule).name.name), state) = ...`"""))
+

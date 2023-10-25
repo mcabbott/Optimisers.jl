@@ -52,6 +52,7 @@ Gradient descent optimizer with learning rate `η` and momentum `ρ`.
 end
 
 init(o::Momentum, x::AbstractArray) = zero(x)
+reset!(o::Momentum, state) = fill!(state, 0)
 
 function apply!(o::Momentum, mvel, x::AbstractArray{T}, dx) where T
   η, ρ = T(o.eta), T(o.rho)
@@ -77,6 +78,7 @@ Gradient descent optimizer with learning rate `η` and Nesterov momentum `ρ`.
 end
 
 init(o::Nesterov, x::AbstractArray) = zero(x)
+reset!(o::Nesterov, vel) = fill!!(vel, 0)
 
 function apply!(o::Nesterov, vel, x::AbstractArray{T}, dx) where T
   η, ρ = T(o.eta), T(o.rho)
@@ -121,6 +123,7 @@ function RMSProp(η = 0.001, ρ = 0.9, ϵ = 1e-8; centred::Bool = false, centere
 end
 
 init(o::RMSProp, x::AbstractArray) = (zero(x), o.centred ? zero(x) : false)
+reset!(o::RMSProp, state) = fill!!.(state, 0)
 
 function apply!(o::RMSProp, state, x::AbstractArray{T}, dx) where T
   η, ρ, ϵ = T(o.eta), T(o.rho), T(o.epsilon)
@@ -171,6 +174,7 @@ end
 Rprop(η = 1f-3, ℓ = (5f-1, 1.2f0), Γ = (1f-6, 50f0)) = Rprop{typeof(η)}(η, ℓ, Γ)
 
 init(o::Rprop, x::AbstractArray) = (zero(x), onevalue(o.eta, x))
+reset!(o::Rprop, (g, η)) = (fill!!(g, 0), fill!!(η, o.eta))
 
 function apply!(o::Rprop, state, x::AbstractArray{T}, dx) where T
     ℓ, Γ = T.(o.ell), T.(o.gamma)
@@ -207,6 +211,7 @@ end
 end
 
 init(o::Adam, x::AbstractArray{T}) where T = (zero(x), zero(x), T.(o.beta))
+reset!(o::Adam, (mt, vt, βt)) = (fill!!(mt, 0), fill!!(vt, o.eta), typeof(βT[1]).(o.beta))
 
 function apply!(o::Adam, state, x::AbstractArray{T}, dx) where T
   η, β, ϵ = T(o.eta), T.(o.beta), T(o.epsilon)
@@ -235,6 +240,7 @@ end
 end
 
 init(o::Lion, x::AbstractArray) = zero(x)
+reset!(o::Lion, state) = fill!!(state, 0)
 
 function apply!(o::Lion, state, x::AbstractArray{T}, dx) where T
   η, β = T(o.eta), T.(o.beta)
@@ -268,6 +274,7 @@ end
 end
 
 init(o::RAdam, x::AbstractArray{T}) where T = (zero(x), zero(x), T.(o.beta), 1)
+??
 
 function apply!(o::RAdam, state, x::AbstractArray{T}, dx) where T
   η, β, ϵ = T(o.eta), T.(o.beta), T(o.epsilon)

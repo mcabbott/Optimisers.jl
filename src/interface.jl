@@ -35,7 +35,15 @@ end
 
 # _setup is almost fmapstructure, but needs a _trainable_walk, and a cache which ignores numbers etc.
 function _setup(rule, x; cache)
-  haskey(cache, x) && return cache[x]
+  if haskey(cache, x)
+    T = if isnumeric(x)
+      T1 = Base._return_type(init, Tuple{typeof(rule), typeof(x)})
+      T2 = Base._return_type(Leaf, Tuple{typeof(rule), T1})
+    else
+      Any
+    end
+    return cache[x]::T2
+  end
   if isnumeric(x)
     ℓ = Leaf(rule, init(rule, x))
     if isbits(x)
@@ -178,7 +186,19 @@ function _trainable(ch::NamedTuple, tr::Tuple)  # for old Flux-style no-names tu
   map(c -> c in tr ? c : nothing, ch)
 end
 
+"""
+    fill!!(x, val)
 
+This is usually `fill!(x, val)`, but allows for immutable arrays.
+"""
+fill!!(x::AbstractArray, val::Number) = maywrite(x) ? fill!(x, val) : map(Returns(val), x)
+fill!!(x::Bool) = x
+
+"""
+    valuemap(f, x...)
+
+This is usually `map(f, x...)`, but has extra methods to allow `Dict`.
+"""
 valuemap(f, x...) = map(f, x...)
 valuemap(f, x::Dict, ys...) = Dict(k => f(v, (get(y, k, nothing) for y in ys)...) for (k,v) in x)
 valueforeach(f, x...) = foreach(f, x...)
