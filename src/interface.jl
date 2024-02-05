@@ -192,7 +192,7 @@ end
 This is usually `fill!(x, val)`, but allows for immutable arrays.
 """
 fill!!(x::AbstractArray, val::Number) = maywrite(x) ? fill!(x, val) : map(Returns(val), x)
-fill!!(x::Bool) = x
+fill!!(x::Bool, val::Number) = x
 
 """
     valuemap(f, x...)

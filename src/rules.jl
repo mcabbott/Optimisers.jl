@@ -211,7 +211,7 @@ end
 end
 
 init(o::Adam, x::AbstractArray{T}) where T = (zero(x), zero(x), T.(o.beta))
-reset!(o::Adam, (mt, vt, βt)) = (fill!!(mt, 0), fill!!(vt, o.eta), typeof(βT[1]).(o.beta))
+reset!(o::Adam, (mt, vt, βt)) = (fill!!(mt, 0), fill!!(vt, 0), typeof(βt[1]).(o.beta))
 
 function apply!(o::Adam, state, x::AbstractArray{T}, dx) where T
   η, β, ϵ = T(o.eta), T.(o.beta), T(o.epsilon)
@@ -274,7 +274,6 @@ end
 end
 
 init(o::RAdam, x::AbstractArray{T}) where T = (zero(x), zero(x), T.(o.beta), 1)
-??
 
 function apply!(o::RAdam, state, x::AbstractArray{T}, dx) where T
   η, β, ϵ = T(o.eta), T.(o.beta), T(o.epsilon)
@@ -695,6 +694,7 @@ end
 adjust(ℓ::OptimiserChain, eta::Real) = OptimiserChain(map(opt -> adjust(opt, eta), ℓ.opts)...)
 adjust(ℓ::OptimiserChain; kw...) = OptimiserChain(map(opt -> adjust(opt; kw...), ℓ.opts)...)
 
+reset!(o::OptimiserChain, state) = map(reset!, o.opts, state)
 
 """
     AccumGrad(n::Int)
@@ -737,6 +737,8 @@ end
 function init(o::AccumGrad, x)
   return (zero(x), 1)
 end
+
+reset!(o::AccumGrad, state) = fill!!(state[1], 0), 1
 
 function apply!(o::AccumGrad, state, x, dx)
   accum_dx, counter = state

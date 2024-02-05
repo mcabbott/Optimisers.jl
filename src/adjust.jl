@@ -155,19 +155,28 @@ end
 Resets the state `tree = setup(rule, model)` back to its initial state,
 un-doing changes caused by `update!`.
 
-Can be applied to the state corresponding to only part of a model,
-for instance with `model::Chain`, to freeze `model.layers[1]` you
-should call `reset!(tree.layers[1])`.
+Can be applied to the state corresponding to only part of a model.
 
 # Example
 ```jldoctest
+julia> out_state = Optimisers.setup(AdamW(), [1.23]);
 
+julia> out_state.state = (([NaN], [-0.1], (0.7, 0.654)), nothing);  # (pretend that update! did this)
+
+julia> out_state
+Leaf(OptimiserChain(Adam(0.001, (0.9, 0.999), 1.0e-8), WeightDecay(0.0)), (([NaN], [-0.1], (0.7, 0.654)), nothing))
+
+julia> Optimisers.reset!(out_state)
+
+julia> out_state
+Leaf(OptimiserChain(Adam(0.001, (0.9, 0.999), 1.0e-8), WeightDecay(0.0)), (([0.0], [0.0], (0.9, 0.999)), nothing))
 ```
 """
-
 reset!(tree) = foreach(reset!, tree)
-
-reset!(ℓ::Leaf) = reset!(ℓ.rule, ℓ.state)
+function reset!(ℓ::Leaf)
+  ℓ.state = reset!(ℓ.rule, ℓ.state)  # 2-arg method must return the state, but
+  nothing  # public method is 1-arg which returns nothing.
+end
 
 reset!(::AbstractRule, ::Nothing) = nothing
 
